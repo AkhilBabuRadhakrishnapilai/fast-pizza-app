@@ -1,8 +1,11 @@
-import { useState } from "react";
 import { Form, redirect, useActionData, useNavigation } from "react-router-dom";
 
-import { createOrder } from "../../services/apiRestaurant";
 import Button from "../../ui/Button";
+import store from '../../store';
+
+import { createOrder } from "../../services/apiRestaurant";
+import { useSelector } from "react-redux";
+import { clearCart, getCart } from "../cart/cartSlice";
 
 // https://uibakery.io/regex-library/phone-number
 const isValidPhone = (str) =>
@@ -10,37 +13,15 @@ const isValidPhone = (str) =>
     str
   );
 
-const fakeCart = [
-  {
-    pizzaId: 12,
-    name: "Mediterranean",
-    quantity: 2,
-    unitPrice: 16,
-    totalPrice: 32,
-  },
-  {
-    pizzaId: 6,
-    name: "Vegetale",
-    quantity: 1,
-    unitPrice: 13,
-    totalPrice: 13,
-  },
-  {
-    pizzaId: 11,
-    name: "Spinach and Mushroom",
-    quantity: 1,
-    unitPrice: 15,
-    totalPrice: 15,
-  },
-];
 
 function CreateOrder() {
   // const [withPriority, setWithPriority] = useState(false);
-  const cart = fakeCart;
+  const cart = useSelector(getCart)
 
   const navigation = useNavigation();
   const isSubmittng = navigation.state === "submitting";
 
+  const username = useSelector(state=> state.user.username)
   //getting the errors
   const formErrors = useActionData();
 
@@ -51,7 +32,7 @@ function CreateOrder() {
       <Form method="POST">
         <div className="mb-5 flex gap-2 flex-col sm:flex-row sm:items-center">
           <label className="sm:basis-40">First Name</label>
-          <input type="text" name="customer" required className="input grow "/>
+          <input type="text" name="customer" defaultValue={username} required className="input grow uppercase"/>
         </div>
 
         <div className="mb-5 flex gap-2 flex-col sm:flex-row sm:items-center">
@@ -110,6 +91,10 @@ export async function action({ request }) {
   if (Object.keys(errors).length > 0) return errors;
   //if there is no erro found create new Order
   const newOrder = await createOrder(order);
+
+  //after the order is placed, need to clear the cart. this can be done by importing  the store
+  //don't overuse this cause will cause performancce issue
+  store.dispatch(clearCart());
 
   return redirect(`/order/${newOrder.id}`);
 }
